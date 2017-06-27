@@ -15,32 +15,37 @@ class Jean:
         self.brand = ''
         self.description = ''
         self.price = ''
-        self.model = ''
-        self.type = ''
-        self.trouserType = ''
+        self.modelo = ''
+        self.tipo = ''
+        self.trouser_type = ''
         self.fit = ''
         self.material = ''
-        self.style = ''
-        self.sizes = ''
+        self.estilo = ''
+        self.size = ''
 
     def set_vals_from_raw_values(self, values):
-        self.model = values[1] if len(values) > 1 else ''
-        self.type = values[2] if len(values) > 2 else ''
-        self.trouserType = values[3] if len(values) > 3 else ''
-        self.fit = values[4] if len(values) > 4 else ''
-        self.material = values[5] if len(values) > 5 else ''
-        self.style = values[6] if len(values) > 6 else ''
-        self.sizes = values[7] if len(values) > 7 else ''
+        attrs = self.__dict__
+        for value in values:
+            if value in attrs:
+                setattr(self, value, values[value])
+            elif text_to_unicode(value) == 'tipo de pantalón' or text_to_unicode(
+                    value) == 'tipos de pantalón' or text_to_unicode(value) == 'tipo pantalón':
+                self.trouser_type = values[value]
+            elif value == 'medidas del modelo' or value == 'medidas modelo':
+                self.size = values[value]
+            else:
+                print 'Not found', value
 
     def get_csv_output(self):
         return (
-            self.brand, self.description, self.price, self.model, self.type, self.trouserType, self.fit, self.material,
-            self.style, self.sizes,
+            self.brand, self.description, self.price, self.modelo, self.tipo, self.trouser_type, self.fit,
+            self.material,
+            self.estilo, self.size,
         )
 
     def __str__(self):
-        return self.brand + ',' + self.description + ',' + self.price + ',' + self.model + ',' + self.type + ',' + \
-               self.trouserType + ',' + self.fit + ',' + self.material + ',' + self.style + ',' + self.sizes
+        return self.brand + ',' + self.description + ',' + self.price + ',' + self.modelo + ',' + self.tipo + ',' + \
+               self.trouser_type + ',' + self.fit + ',' + self.material + ',' + self.estilo + ',' + self.size
 
 
 def text_to_unicode(text):
@@ -48,10 +53,11 @@ def text_to_unicode(text):
 
 
 def parse_jean_from_description(descr, jean):
-    values = []
+    values = {}
     for index, string in enumerate(descr):
+        key = string.split(':')[0].strip().lower()
         value = string.split(':')[1].strip() if len(string.split(':')) > 1 else ''
-        values.append(text_to_unicode(value))
+        values[key] = text_to_unicode(value)
         if string.lower().startswith('medidas'):
             break
     jean.set_vals_from_raw_values(values)
@@ -87,9 +93,10 @@ jeans = soup.find_all('div', class_='cajaLP4x')
 i = 0
 with open('jeans.csv', 'wb') as jeans_csv:
     wr = csv.writer(jeans_csv)
-    wr.writerow(("Marca", "descripcion", "precio", "modelo", "tipo", "tipo de pantalon", "fit", "material", "estilo", "medidas"))
+    wr.writerow(("Marca", "descripcion", "precio", "modelo", "tipo", "tipo de pantalon", "fit", "material", "estilo",
+                 "medidas"))
     while len(jeans) > 0:
-        pool = ThreadPool(40)
+        pool = ThreadPool(100)
         parsed_jeans, results = parse_jeans(jeans, pool)
         pool.close()
         pool.join()
